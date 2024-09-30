@@ -33,7 +33,6 @@ public class PMovement : MonoBehaviour
     private void Awake()
     {
         m_Rigidbody2D = GetComponent<Rigidbody2D>();
-
         if (OnLandEvent == null)
             OnLandEvent = new UnityEvent();
 
