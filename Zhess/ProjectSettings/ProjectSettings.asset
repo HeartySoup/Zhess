@@ -756,11 +756,11 @@ PlayerSettings:
   apiCompatibilityLevel: 6
   activeInputHandler: 0
   windowsGamepadBackendHint: 0
-  cloudProjectId: 
+  cloudProjectId: c652b14c-3b16-4091-8f6f-bb63414a9ea8
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: 
-  organizationId: 
+  projectName: Zhess
+  organizationId: cookieslayer35
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   playerDataPath: 
