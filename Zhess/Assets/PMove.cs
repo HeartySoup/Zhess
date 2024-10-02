@@ -10,12 +10,14 @@ public class PMove : MonoBehaviour
 
     private bool m_Grounded;
     [SerializeField] private LayerMask m_WhatIsGround;
-    [SerializeField] private Transform m_GroundCheck;
-    const float k_GroundedRadius = .3f;
+    private float raycastDistance = 0.1f;
+    [SerializeField] private GameObject m_GroundCheck;
     private float m_JumpForce = 600f;
     float hopt;
+    float fhTimer;
     bool firstHop = true;
     bool wRelease = true;
+    float GCsub;
 
     bool moveStop;
     int mode;
@@ -28,6 +30,7 @@ public class PMove : MonoBehaviour
     {
         mode = 1;
         m_Rigidbody2D = GetComponent<Rigidbody2D>();
+        m_PhysicMat2D = m_Rigidbody2D.sharedMaterial;
     }
 
     // Update is called once per frame
@@ -47,20 +50,10 @@ public class PMove : MonoBehaviour
         bool wasGrounded = m_Grounded;
         m_Grounded = false;
         CoyoteTimeTimer -= Time.deltaTime;
-
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(m_GroundCheck.position, k_GroundedRadius, m_WhatIsGround);
-        for (int i = 0; i < colliders.Length; i++)
+        fhTimer -= Time.deltaTime;
+        if (fhTimer < 0)
         {
-            if (colliders[i].gameObject != gameObject)
-            {
-                firstHop = false;
-                m_Grounded = true;
-                CoyoteTimeTimer = CoyoteTime;
-
-                moveStop = false;
-                //if (!wasGrounded)
-                //  OnLandEvent.Invoke();
-            }
+            firstHop = false;
         }
         
         //move logic
@@ -80,26 +73,39 @@ public class PMove : MonoBehaviour
         {
             moveY += 1;
         }
+        if (Input.GetKey(KeyCode.S) == true)
+        {
+            moveY -= 1;
+        }
         //lr movement normal
         if (mode == 1)
         {
+            m_PhysicMat2D.friction = 0;
+            m_Rigidbody2D.gravityScale = 7;
             Vector3 targetVelocity = new Vector2(move * 10f, m_Rigidbody2D.velocity.y);
             m_Rigidbody2D.velocity = Vector3.SmoothDamp(m_Rigidbody2D.velocity, targetVelocity, ref m_velocity, 0.1f);
         }
         //lr movement special
-        if (mode == 2)
+        Debug.Log(move);
+        if (mode == 3)
         {
             if ((m_Grounded == false && moveStop == true) || (move == 0 || moveY == 0))
             {
+                m_PhysicMat2D.friction = 0;
                 m_Rigidbody2D.gravityScale = 7;
             }
             else
             {
                 m_Rigidbody2D.gravityScale = 0;
-                transform.position += new Vector3(move * 12f, 0) * Time.deltaTime;
-                transform.position += new Vector3(0, moveY * 12f) * Time.deltaTime;
+                m_PhysicMat2D.friction = 1000;
+                m_Rigidbody2D.velocity += new Vector2(move, moveY);
+                if (Mathf.Abs(m_Rigidbody2D.velocity.x) > 20)
+                {
+                    m_Rigidbody2D.velocity = new Vector2(move * 20, moveY * 20);
+                }
             }
         }
+        m_Rigidbody2D.sharedMaterial = m_Rigidbody2D.sharedMaterial;
 
         // jumping normal
         if (mode == 1)
@@ -109,6 +115,7 @@ public class PMove : MonoBehaviour
                 if (CoyoteTimeTimer > 0 && firstHop == false && wRelease == true)
                 {
                     m_Rigidbody2D.velocity = new Vector3(m_Rigidbody2D.velocity.x, 0);
+                    fhTimer = 0.3f;
                     firstHop = true;
                     hopt = 0;
                     m_Rigidbody2D.AddForce(new Vector2(0f, m_JumpForce));
@@ -117,7 +124,6 @@ public class PMove : MonoBehaviour
                 }
                 // delay for short hop/big jumps
                 hopt -= Time.deltaTime;
-                Debug.Log(hopt);
                 if (hopt < -0.01f && hopt > -0.2f)
                 {
                     m_Rigidbody2D.AddForce(new Vector2(0f, m_JumpForce / 10));
@@ -134,6 +140,7 @@ public class PMove : MonoBehaviour
 
     private void Update()
     {
+
         //cycling through modes
         if (Input.GetKeyDown(KeyCode.C))
         {
@@ -148,19 +155,48 @@ public class PMove : MonoBehaviour
             }
             Debug.Log(mode); 
         }
-            //no chain jumping
-            if (Input.GetKeyUp(KeyCode.W) == true)
-            {
-                hopt = 100;
-                wRelease = true;
 
-                moveStop = true;
-            }
-            //lr movement special
-            if (Input.GetKeyUp(KeyCode.A) == true || Input.GetKeyUp(KeyCode.D) == true)
+        Transform T = m_GroundCheck.transform;
+        RaycastHit2D middleRay = Physics2D.Raycast(T.position, Vector2.down, raycastDistance, m_WhatIsGround);
+        RaycastHit2D leftRay = Physics2D.Raycast(new Vector2(T.position.x - (T.localScale.x / 2) + GCsub, T.position.y), Vector2.down, raycastDistance, m_WhatIsGround);
+        RaycastHit2D rightRay = Physics2D.Raycast(new Vector2(T.position.x + (T.localScale.x / 2) - GCsub, T.position.y), Vector2.down, raycastDistance, m_WhatIsGround);
+        GCsub = 0.25f;
+        if (middleRay.collider != null || leftRay.collider != null || rightRay.collider != null)
+        {
+            m_Grounded = true;
+            CoyoteTimeTimer = CoyoteTime;
+            moveStop = false;
+            GCsub = 0f;
+            //if (!wasGrounded)
+            //  OnLandEvent.Invoke();
+        }
+
+        //no chain jumping
+        if (Input.GetKeyUp(KeyCode.W) == true)
+        {
+            hopt = 100;
+            wRelease = true;
+
+            if(mode == 3)
             {
                 moveStop = true;
+                m_Rigidbody2D.velocity = new Vector2(0, 0);
             }
-        
+            
+        }
+        if (Input.GetKeyUp(KeyCode.S) == true)
+        {
+            if (mode == 3)
+            {
+                moveStop = true;
+                m_Rigidbody2D.velocity = new Vector2(0, 0);
+            }
+        }
+        //lr movement special
+        if (Input.GetKeyUp(KeyCode.A) == true || Input.GetKeyUp(KeyCode.D) == true)
+        {
+            moveStop = true;
+        }
     }
+
 }
