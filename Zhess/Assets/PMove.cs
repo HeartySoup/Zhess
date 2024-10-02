@@ -83,18 +83,15 @@ public class PMove : MonoBehaviour
             m_PhysicMat2D.friction = 0;
             m_Rigidbody2D.gravityScale = 7;
             Vector3 targetVelocity = new Vector2(move * 10f, m_Rigidbody2D.velocity.y);
-            m_Rigidbody2D.velocity = Vector3.SmoothDamp(m_Rigidbody2D.velocity, targetVelocity, ref m_velocity, 0.1f);
+            m_Rigidbody2D.velocity = Vector3.SmoothDamp(m_Rigidbody2D.velocity, targetVelocity, ref m_velocity, 0.05f);
         }
         //lr movement special
-        Debug.Log(move);
         if (mode == 3)
         {
-            if ((m_Grounded == false && moveStop == true) || (move == 0 || moveY == 0))
-            {
-                m_PhysicMat2D.friction = 0;
-                m_Rigidbody2D.gravityScale = 7;
-            }
-            else
+            m_PhysicMat2D.friction = 0;
+            m_Rigidbody2D.gravityScale = 7;
+
+            if(Mathf.Abs(move) + Mathf.Abs(moveY) > 0 && (m_Grounded == true || moveStop == false))
             {
                 m_Rigidbody2D.gravityScale = 0;
                 m_PhysicMat2D.friction = 1000;
@@ -104,6 +101,7 @@ public class PMove : MonoBehaviour
                     m_Rigidbody2D.velocity = new Vector2(move * 20, moveY * 20);
                 }
             }
+            
         }
         m_Rigidbody2D.sharedMaterial = m_Rigidbody2D.sharedMaterial;
 
@@ -124,7 +122,7 @@ public class PMove : MonoBehaviour
                 }
                 // delay for short hop/big jumps
                 hopt -= Time.deltaTime;
-                if (hopt < -0.01f && hopt > -0.2f)
+                if (hopt < -0.03f && hopt > -0.18f)
                 {
                     m_Rigidbody2D.AddForce(new Vector2(0f, m_JumpForce / 10));
                 }
@@ -160,13 +158,17 @@ public class PMove : MonoBehaviour
         RaycastHit2D middleRay = Physics2D.Raycast(T.position, Vector2.down, raycastDistance, m_WhatIsGround);
         RaycastHit2D leftRay = Physics2D.Raycast(new Vector2(T.position.x - (T.localScale.x / 2) + GCsub, T.position.y), Vector2.down, raycastDistance, m_WhatIsGround);
         RaycastHit2D rightRay = Physics2D.Raycast(new Vector2(T.position.x + (T.localScale.x / 2) - GCsub, T.position.y), Vector2.down, raycastDistance, m_WhatIsGround);
-        GCsub = 0.25f;
+        GCsub = 0f;
+        if(Mathf.Abs(m_Rigidbody2D.velocity.x) + Mathf.Abs(m_Rigidbody2D.velocity.y) > 0)
+        {
+            GCsub = 0.25f;
+        }
         if (middleRay.collider != null || leftRay.collider != null || rightRay.collider != null)
         {
             m_Grounded = true;
             CoyoteTimeTimer = CoyoteTime;
+            
             moveStop = false;
-            GCsub = 0f;
             //if (!wasGrounded)
             //  OnLandEvent.Invoke();
         }
@@ -177,7 +179,7 @@ public class PMove : MonoBehaviour
             hopt = 100;
             wRelease = true;
 
-            if(mode == 3)
+            if(mode == 3 && moveStop == false)
             {
                 moveStop = true;
                 m_Rigidbody2D.velocity = new Vector2(0, 0);
@@ -186,7 +188,7 @@ public class PMove : MonoBehaviour
         }
         if (Input.GetKeyUp(KeyCode.S) == true)
         {
-            if (mode == 3)
+            if (mode == 3 && moveStop == false)
             {
                 moveStop = true;
                 m_Rigidbody2D.velocity = new Vector2(0, 0);
@@ -195,7 +197,11 @@ public class PMove : MonoBehaviour
         //lr movement special
         if (Input.GetKeyUp(KeyCode.A) == true || Input.GetKeyUp(KeyCode.D) == true)
         {
-            moveStop = true;
+            if (mode == 3 && moveStop == false)
+            {
+                moveStop = true;
+                m_Rigidbody2D.velocity = new Vector2(0, 0);
+            }
         }
     }
 
