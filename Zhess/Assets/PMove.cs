@@ -19,7 +19,7 @@ public class PMove : MonoBehaviour
     private bool m_Grounded;
     [SerializeField] private LayerMask m_WhatIsGround;
     [SerializeField] private GameObject m_GroundCheck;
-    private float raycastDistance = 0.05f;
+    private float raycastDistance = 0.03f;
     private float GCsub;
     private float m_JumpForce = 600f;
     private float hopt;
@@ -117,7 +117,7 @@ public class PMove : MonoBehaviour
         }
         else if (mode == 2)
         {
-            if (savedMov == move && (m_Grounded || (!m_Grounded && move != Vector2.zero)))
+            if ((savedMov.x == move.x || savedMov.x == 0) && (savedMov.y == move.y || savedMov.y == 0) && (m_Grounded || (!m_Grounded && move != Vector2.zero)))
             {
                 if (m_Grounded == false && move != Vector2.zero)
                 {
