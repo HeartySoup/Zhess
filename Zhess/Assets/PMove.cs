@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class PMove : MonoBehaviour
@@ -8,25 +10,23 @@ public class PMove : MonoBehaviour
     private PhysicsMaterial2D m_PhysicMat2D;
 
     private Vector3 m_velocity = Vector3.zero;
-    private float move = 0f;
-    private float moveY = 0f;
-    private float totalMoveV;
-    bool HvsV;
-
+    private Vector2 move;
+    float HV;
+    bool rookReset;
     private Vector2 savedMov;
     private bool moveStop;
 
     private bool m_Grounded;
     [SerializeField] private LayerMask m_WhatIsGround;
     [SerializeField] private GameObject m_GroundCheck;
-    private float raycastDistance = 0.1f;
+    private float raycastDistance = 0.05f;
+    private float GCsub;
     private float m_JumpForce = 600f;
     private float hopt;
     private float fhTimer;
     
     private bool firstHop = true;
     private bool wRelease = true;
-    private float GCsub;
     
     private int mode;
 
@@ -68,8 +68,6 @@ public class PMove : MonoBehaviour
     }
     private void GroundCheck()
     {
-        bool wasGrounded = m_Grounded;
-        m_Grounded = false;
         CoyoteTimeTimer -= Time.deltaTime;
         fhTimer -= Time.deltaTime;
         if (fhTimer < 0)
@@ -80,58 +78,65 @@ public class PMove : MonoBehaviour
     private void GroundRaycast()
     {
         Transform T = m_GroundCheck.transform;
-        GCsub = (totalMoveV == 0) ? 0f : 0.25f;
+        RaycastHit2D leftRayW = Physics2D.Raycast(new Vector2(T.position.x - (T.localScale.x / 2), T.position.y), Vector2.left, raycastDistance, m_WhatIsGround);
+        RaycastHit2D rightRayW = Physics2D.Raycast(new Vector2(T.position.x + (T.localScale.x / 2), T.position.y), Vector2.right, raycastDistance, m_WhatIsGround);
+        GCsub = (leftRayW.collider == null && rightRayW.collider == null) ? 0f : 0.25f;
 
         RaycastHit2D middleRay = Physics2D.Raycast(T.position, Vector2.down, raycastDistance, m_WhatIsGround);
         RaycastHit2D leftRay = Physics2D.Raycast(new Vector2(T.position.x - (T.localScale.x / 2) + GCsub, T.position.y), Vector2.down, raycastDistance, m_WhatIsGround);
         RaycastHit2D rightRay = Physics2D.Raycast(new Vector2(T.position.x + (T.localScale.x / 2) - GCsub, T.position.y), Vector2.down, raycastDistance, m_WhatIsGround);
+        
+        m_Grounded = false;
 
         if (middleRay.collider != null || leftRay.collider != null || rightRay.collider != null)
         {
             m_Grounded = true;
             CoyoteTimeTimer = CoyoteTime;
 
-            savedMov = new Vector2(move, moveY);
+            savedMov = move;
+            HV = Mathf.Abs(savedMov.x) + Mathf.Abs(savedMov.y);
             moveStop = false;
+
         }
     }
 
     private void Movement()
     {
-        move = 0f;
-        moveY = 0f;
+        move = Vector2.zero;
+        move = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
-        if (Input.GetKey(KeyCode.A)) move -= 1f;
-        if (Input.GetKey(KeyCode.D)) move += 1f;
-        if (Input.GetKey(KeyCode.W)) moveY += 1f;
-        if (Input.GetKey(KeyCode.S)) moveY -= 1f;
-        totalMoveV = Mathf.Sqrt(Mathf.Pow(m_Rigidbody2D.velocity.x, 2) + Mathf.Pow(m_Rigidbody2D.velocity.y, 2));
-
-        Vector3 targetVelocity = new Vector2(move * 10f, m_Rigidbody2D.velocity.y);
+        Vector3 targetVelocity = new Vector2(move.x * 10f, m_Rigidbody2D.velocity.y);
         m_PhysicMat2D.friction = 0f;
         m_Rigidbody2D.gravityScale = 7f;
-
         if (mode == 1)
         {
             // Normal left-right movement
 
             m_Rigidbody2D.velocity = Vector3.SmoothDamp(m_Rigidbody2D.velocity, targetVelocity, ref m_velocity, 0.05f);
-            
+
         }
         else if (mode == 2)
         {
-            if (savedMov == new Vector2(move, moveY) && moveStop == false)
+            if (savedMov == move && (m_Grounded || (!m_Grounded && move != Vector2.zero)))
             {
-                m_Rigidbody2D.gravityScale = 0f;
-                m_PhysicMat2D.friction = 1000f;
-                targetVelocity = new Vector2(savedMov.x * 10f, savedMov.y * 10f);
+                if (m_Grounded == false && move != Vector2.zero)
+                {
+                    m_Rigidbody2D.gravityScale = 0f;
+                    m_PhysicMat2D.friction = 1000f;
+                }
+                rookReset = true;
+                targetVelocity = new Vector2(savedMov.x, savedMov.y) * 15f;
                 m_Rigidbody2D.velocity = Vector3.SmoothDamp(m_Rigidbody2D.velocity, targetVelocity, ref m_velocity, 0.05f);
             }
             else
             {
-                moveStop = true;
+                savedMov = new Vector2(1000, 1000);
+                if ((HV == 1 ||  HV == 0) && rookReset && !m_Grounded)
+                {
+                    m_Rigidbody2D.velocity = Vector2.zero;
+                    rookReset = false;
+                }
             }
-        
         }
 
         m_Rigidbody2D.sharedMaterial = m_Rigidbody2D.sharedMaterial;
@@ -141,7 +146,7 @@ public class PMove : MonoBehaviour
     {
         if (mode == 1)
         {
-            if (Input.GetKey(KeyCode.W))
+            if (Input.GetAxisRaw("Vertical") == 1)
             {
                 if (CoyoteTimeTimer > 0 && !firstHop && wRelease)
                 {
@@ -176,7 +181,8 @@ public class PMove : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.C))
         {
-            mode = (mode < 4) ? mode + 1 : 1;
+
+            mode = (mode < 2) ? mode + 1 : 1;
             Debug.Log(mode);
         }
     }
