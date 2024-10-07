@@ -5,9 +5,9 @@ using UnityEngine;
 public class BooleanLogic : MonoBehaviour
 {
  
-    public bool RookFallCheck(float h, bool r, bool g)
+    public bool RookFallCheck(float h, float m)
     {
-        if((h == 2 || h == 1 || h == 0) && r && !g)
+        if((h < 3|| m == 6))
         {
             return true;
         }
@@ -24,7 +24,7 @@ public class BooleanLogic : MonoBehaviour
     }
     public bool GroundedOrContinuing(bool g, Vector2 s, bool b)
     {
-        if (g || (!g && s != Vector2.zero && b))
+        if ((g) || (!g && s != Vector2.zero && b))
         {
             return true;
         }
@@ -34,6 +34,15 @@ public class BooleanLogic : MonoBehaviour
     public bool CanJump(float c, bool fh, bool wR)
     {
         if(c > 0 && !fh && wR)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public bool PawnDoubleHop(float m, bool p)
+    {
+        if(m == 2 && p == false)
         {
             return true;
         }
