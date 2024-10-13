@@ -130,7 +130,7 @@ public class PMove : BooleanLogic
         }
         else
         {
-            if (bufferMoveTimer > 0 && ((VB && Mathf.Abs(move.y) == 1) || (isR == move.x && move.x != 0)  || swapTimer > 0))
+            if ((bufferMoveTimer > 0 && ((VB && Mathf.Abs(move.y) == 1) || (isR == move.x && move.x != 0)  || swapTimer > 0)) && move != Vector2.zero)
             {
                 UpdateSavedMov();
                 validBuffer = true;
@@ -161,7 +161,8 @@ public class PMove : BooleanLogic
         move = Vector2.zero;
         move = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
         Vector3 targetVelocity;
-        targetVelocity = (m_Grounded && !swapGrounded) ? m_Rigidbody2D.velocity / 2 : m_Rigidbody2D.velocity;
+        targetVelocity = (m_Grounded && !swapGrounded) ? m_Rigidbody2D.velocity / 3 : m_Rigidbody2D.velocity;
+        //targetVelocity = m_Rigidbody2D.velocity;
         m_PhysicMat2D.friction = 0f;
         m_Rigidbody2D.gravityScale = 7f;
         if (mode < 4)
@@ -169,8 +170,7 @@ public class PMove : BooleanLogic
             if (mode < 3)
             {
                 bufferMove = 0.15f;
-                if (mode == 2) move = new Vector2(0, m_Rigidbody2D.velocity.y);
-                targetVelocity = new Vector2(move.x * 10f, m_Rigidbody2D.velocity.y);
+                if (mode == 1) targetVelocity = new Vector2(move.x * 10f, m_Rigidbody2D.velocity.y);
             }
             if (mode == 3)
             {
